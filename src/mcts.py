@@ -1,9 +1,17 @@
+```python
 import math
 import random
 
 
 class Node:
-    def __init__(self, board, player, parent=None, move=None):
+
+    def __init__(
+        self,
+        board,
+        player,
+        parent=None,
+        move=None
+    ):
         self.board = board[:]
         self.player = player
         self.parent = parent
@@ -22,23 +30,7 @@ class Node:
         ]
 
     def winner(self):
-        winning_lines = [
-            (0, 1, 2),
-            (3, 4, 5),
-            (6, 7, 8),
-            (0, 3, 6),
-            (1, 4, 7),
-            (2, 5, 8)
-        ]
-
-        for a, b, c in winning_lines:
-            if (
-                self.board[a] != ' ' and
-                self.board[a] == self.board[b] == self.board[c]
-            ):
-                return self.board[a]
-
-        return None
+        return check_winner(self.board)
 
     def is_terminal(self):
         return (
@@ -57,93 +49,57 @@ def apply_move(board, move, player):
     return new_board
 
 
-def mcts(board, player, iterations=500):
-    root_player = player
+def check_winner(board):
 
-    root = Node(board, player)
+    winning_lines = [
+        (0, 1, 2),
+        (3, 4, 5),
+        (6, 7, 8),
+        (0, 3, 6),
+        (1, 4, 7),
+        (2, 5, 8),
+        (0, 4, 8),
+        (2, 4, 6)
+    ]
 
-    for _ in range(iterations):
+    for a, b, c in winning_lines:
 
-        # -------------------------
-        # 1. SELECTION
-        # -------------------------
-        node = root
+        if (
+            board[a] != ' '
+            and board[a] == board[b]
+            and board[a] == board[c]
+        ):
+            return board[a]
 
-        while not node.untried_moves and not node.is_terminal():
-            node = best_uct_child(node)
-
-        # -------------------------
-        # 2. EXPANSION
-        # -------------------------
-        if node.untried_moves and not node.is_terminal():
-            move = random.choice(node.untried_moves)
-            node.untried_moves.remove(move)
-
-            next_player = other_player(node.player)
-
-            new_board = apply_move(
-                node.board,
-                move,
-                node.player
-            )
-
-            child = Node(
-                new_board,
-                next_player,
-                parent=node,
-                move=move
-            )
-
-            node.children.append(child)
-            node = child
-
-        # -------------------------
-        # 3. SIMULATION
-        # -------------------------
-        result = random_playout(node.board, node.player)
-
-        # -------------------------
-        # 4. BACKPROPAGATION
-        # -------------------------
-        while node is not None:
-            node.visits += 1
-
-            if result == root_player:
-                node.wins += 1
-            elif result == "draw":
-                node.wins += 0.5
-
-            node = node.parent
-
-    best_child = max(
-        root.children,
-        key=lambda child: child.visits
-    )
-
-    return best_child.move, root
-
-
-def best_uct_child(node):
-    return max(
-        node.children,
-        key=lambda child: uct_value(child, node.visits)
-    )
+    return None
 
 
 def uct_value(child, parent_visits):
+
     if child.visits == 0:
         return float('inf')
 
     exploitation = child.wins / child.visits
 
     exploration = math.sqrt(
-        2 * math.log(parent_visits) / child.visits
+        2 * math.log(parent_visits)
+        / child.visits
     )
 
     return exploitation + exploration
 
 
+def best_uct_child(node):
+
+    return max(
+        node.children,
+        key=lambda child:
+        uct_value(child, node.visits)
+    )
+
+
 def random_playout(board, player):
+
     simulation_board = board[:]
     current_player = player
 
@@ -163,28 +119,144 @@ def random_playout(board, player):
             return "draw"
 
         move = random.choice(legal_moves)
+
         simulation_board[move] = current_player
 
         current_player = other_player(current_player)
 
 
-def check_winner(board):
-    winning_lines = [
-        (0, 1, 2),
-        (3, 4, 5),
-        (6, 7, 8),
-        (0, 3, 6),
-        (1, 4, 7),
-        (2, 4, 6),
-        (0, 4, 8),
-        (2, 4, 6)
-    ]
+def mcts(board, player, iterations=500):
 
-    for a, b, c in winning_lines:
-        if (
-            board[a] != ' ' and
-            board[a] == board[b] == board[c]
+    root_player = player
+
+    root = Node(
+        board,
+        player
+    )
+
+    for _ in range(iterations):
+
+        # Selection
+        node = root
+
+        while (
+            not node.untried_moves
+            and not node.is_terminal()
         ):
-            return board[a]
+            node = best_uct_child(node)
 
-    return None
+        # Expansion
+        if (
+            node.untried_moves
+            and not node.is_terminal()
+        ):
+
+            move = random.choice(
+                node.untried_moves
+            )
+
+            node.untried_moves.remove(move)
+
+            next_player = other_player(
+                node.player
+            )
+
+            new_board = apply_move(
+                node.board,
+                move,
+                node.player
+            )
+
+            child = Node(
+                new_board,
+                next_player,
+                parent=node,
+                move=move
+            )
+
+            node.children.append(child)
+
+            node = child
+
+        # Simulation
+        result = random_playout(
+            node.board,
+            node.player
+        )
+
+        # Backpropagation
+        while node is not None:
+
+            node.visits += 1
+
+            if result == root_player:
+                node.wins += 1
+
+            elif result == "draw":
+                node.wins += 0.5
+
+            node = node.parent
+
+    if not root.children:
+        return None, root
+
+    best_child = max(
+        root.children,
+        key=lambda child:
+        child.visits
+    )
+
+    return best_child.move, root
+
+
+def display_board(board):
+
+    print()
+
+    for i in range(0, 9, 3):
+
+        print(
+            f" {board[i]} | "
+            f"{board[i + 1]} | "
+            f"{board[i + 2]} "
+        )
+
+        if i < 6:
+            print("---+---+---")
+
+    print()
+
+
+# Test MCTS
+if __name__ == "__main__":
+
+    board = [' '] * 9
+
+    print("Initial Tic-Tac-Toe Board:")
+
+    display_board(board)
+
+    move, root = mcts(
+        board,
+        'X',
+        iterations=500
+    )
+
+    print(
+        "MCTS selected move:",
+        move + 1
+    )
+
+    print(
+        "Total simulations:",
+        root.visits
+    )
+
+    # Apply MCTS selected move
+    board[move] = 'X'
+
+    print()
+    print("Board after MCTS move:")
+
+    display_board(board)
+```
