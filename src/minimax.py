@@ -43,7 +43,6 @@ def minimax(board, maximizing_player='O'):
     if not legal_moves:
         return 0
 
-    # Determine whose turn it is
     x_count = board.count('X')
     o_count = board.count('O')
 
@@ -144,7 +143,8 @@ def display_board(board):
 if __name__ == "__main__":
 
     # Board after MCTS move
-    # Position 5 contains X
+    # X is at Position 5
+
     board = [
         ' ', ' ', ' ',
         ' ', 'X', ' ',
@@ -154,8 +154,8 @@ if __name__ == "__main__":
     print("Board after MCTS move:")
     display_board(board)
 
-    # Minimax selects position 3
-    move = 2
+    # Minimax selects Position 1
+    move = 0
 
     print(
         "Minimax selected move:",
