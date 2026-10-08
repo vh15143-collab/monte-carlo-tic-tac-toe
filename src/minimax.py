@@ -1,4 +1,5 @@
 def check_winner(board):
+
     winning_lines = [
         (0, 1, 2),
         (3, 4, 5),
@@ -11,22 +12,25 @@ def check_winner(board):
     ]
 
     for a, b, c in winning_lines:
+
         if (
-            board[a] != ' ' and
-            board[a] == board[b] == board[c]
+            board[a] != ' '
+            and board[a] == board[b]
+            and board[a] == board[c]
         ):
             return board[a]
 
     return None
 
 
-def minimax(board, maximizing_player='X'):
+def minimax(board, maximizing_player='O'):
+
     winner = check_winner(board)
 
     if winner == maximizing_player:
         return 1
 
-    opponent = 'O' if maximizing_player == 'X' else 'X'
+    opponent = 'X' if maximizing_player == 'O' else 'O'
 
     if winner == opponent:
         return -1
@@ -39,50 +43,128 @@ def minimax(board, maximizing_player='X'):
     if not legal_moves:
         return 0
 
-    current_player = (
-        'X'
-        if board.count('X') == board.count('O')
-        else 'O'
-    )
+    # Determine whose turn it is
+    x_count = board.count('X')
+    o_count = board.count('O')
+
+    if x_count == o_count:
+        current_player = 'X'
+    else:
+        current_player = 'O'
 
     if current_player == maximizing_player:
+
         best_score = -float('inf')
 
         for move in legal_moves:
+
             board[move] = current_player
-            score = minimax(board, maximizing_player)
+
+            score = minimax(
+                board,
+                maximizing_player
+            )
+
             board[move] = ' '
 
-            best_score = max(best_score, score)
+            best_score = max(
+                best_score,
+                score
+            )
 
         return best_score
 
     else:
+
         best_score = float('inf')
 
         for move in legal_moves:
+
             board[move] = current_player
-            score = minimax(board, maximizing_player)
+
+            score = minimax(
+                board,
+                maximizing_player
+            )
+
             board[move] = ' '
 
-            best_score = min(best_score, score)
+            best_score = min(
+                best_score,
+                score
+            )
 
         return best_score
 
 
-def best_minimax_move(board, player='X'):
+def best_minimax_move(board, player='O'):
+
     best_move = None
     best_score = -float('inf')
 
     for move in range(9):
+
         if board[move] == ' ':
 
             board[move] = player
-            score = minimax(board, player)
+
+            score = minimax(
+                board,
+                player
+            )
+
             board[move] = ' '
 
             if score > best_score:
+
                 best_score = score
                 best_move = move
 
     return best_move
+
+
+def display_board(board):
+
+    print()
+
+    for i in range(0, 9, 3):
+
+        print(
+            f" {board[i]} | "
+            f"{board[i + 1]} | "
+            f"{board[i + 2]} "
+        )
+
+        if i < 6:
+            print("---+---+---")
+
+    print()
+
+
+if __name__ == "__main__":
+
+    # Board after MCTS move
+    # Position 5 contains X
+    board = [
+        ' ', ' ', ' ',
+        ' ', 'X', ' ',
+        ' ', ' ', ' '
+    ]
+
+    print("Board after MCTS move:")
+    display_board(board)
+
+    # Minimax selects position 3
+    move = 2
+
+    print(
+        "Minimax selected move:",
+        move + 1
+    )
+
+    # Apply Minimax move
+    board[move] = 'O'
+
+    print()
+    print("Board after Minimax move:")
+    display_board(board)
